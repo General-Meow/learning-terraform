@@ -33,6 +33,9 @@
   - variables.tf - where all the variables are defined with descriptions and default values
   - providers.tf - details of what provider to use
   - terraform.tfvars - file containing variables of sensitive data. to which you will refer to in the main.tf. this should be in the .gitignore gile
+
+
+#####Variables
 - The values in key value pairs don't need to be hardcoded, they can be defined to look up variables
   - The syntax for a basic variable is ${var.VARIABLE_NAME} eg. `${var.my_token}`
 - Variables can be basic variables or maps
@@ -54,6 +57,9 @@ variable "this_is_my_map_variable" {
 }
 ```
 - To reference a map variable property, you use the syntax `${lookup(var.MAP_NAME, var.PROPERTY_NAME)}`
+
+
+#####Post
 - Installing software after the provisioning can be done in a number of ways
   - file uploads
   - remote exec
@@ -113,5 +119,86 @@ resource "xx" "xx" {
     ]
   }
 
+}
+```
+- Details (attributes) of the resources created are also stored by terraform and can be queried and outputted
+  - details such as the public IP of the EC2 instance just created
+  - these details can then be fed as input to other apps or just printed to the console
+  - to get access to the attributes you simply use the syntax `${<RESOURCE_TYPE>.<RESOURCE_NAME>.<ATTRIBUTE_NAME>}` eg. `${aws_instance.my_instance.public_ip}`
+  - you can also output this info via the output function
+```
+resource "aws_instance" "my_instace" {
+  xxx = ""
+  xxx = ""
+}
+
+output "ip" {
+  value = "${aws_instance.my_instance.public_ip}"
+}
+```
+
+- like the `remote-exec` provisioner, you can use the `local-exec` that will run on your local machine
+```
+resource "aws_instance" "my_instace" {
+  xxx = ""
+  xxx = ""
+  
+  provisioner "local-exec" {
+    command = "echo ${aws_instance.my_instance.public_ip} >> private_ip.txt" 
+  }
+}
+```
+
+
+#####History
+- Terraform keeps state of the provisioned resources in a file call `terraform.tfstate` and the previous state in `terraform.tfstate.backup`
+  - this file is created after running `terraform apply`
+  - this gives a history of what the state was like
+  - when working on a large project with mulitple devs, there may be a lot of git conflicts so storing it locally is only a good idea on small projects. when this starts to happen change the config to have it stored remotely
+  - To change where the history is stored, you change the "backend"
+  - There are 3 backends you can choose, S3, Consul, Terraform Enterprise
+  - advantages include
+    - state is always available (devs can change the env state but wont be availble to others until they commit and push)
+    - sensitive data is no longer locally
+- To configure, add a `backend.tf` configuration file with the correct config - just look this up
+
+
+#####Datasources
+- A datasource in Terraform is just a place to retrieve data
+- Used in some providers like AWS
+- AWS provides loads of data via its API but its easier to get this same data via the datasource
+- You can get this data and run filters against it and have it avalable in variables during an `apply`
+```
+data "aws_ip_ranges" "my_ips" {
+  regions = ["us-west-1"]
+}
+```
+- With the definition above, `my_ips` will now contain all IPs in the `us-west-1` region
+- You can access this data with `${data.aws_ip_ranges.my_ips.create_date}`
+
+
+#####Templating
+- Terraform supports templates
+- Templates are files like scripts or application configuration files that have variables
+- These variables are then replaced with values/variables defined in the Terraform files
+- With a template resource defined in the file that points the the script/config template, it replaces all the variables with values and then can feed it to AWS startup scripts for EC2 instance (user-data)
+- The template
+```
+#!/bin/bash
+echo "Hello ${name}"
+```
+- The TF file
+```
+data "template_file" "my_script" {
+  tempalte = ${file(the_template_file.tpl)}
+  
+  vars {
+    name = "Paul"
+  }
+}
+
+resource "aws_instance" "demp_instance" {
+  ...
+  user-data = ${template_file.mu_script.rendered}
 }
 ```
