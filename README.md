@@ -97,7 +97,7 @@ this_is_my_map_variable = {
 ```
 command line var
 ```
-terraform apply -var 'this_is_my_map_variable={ key_1 = "value 1", key_2 = "value 2", key_3 = "value 3" }'
+terraform apply -var 'this_is_my_map_variable={ key_1 = "value 1", key_2 = "value 2", key_3 = "value 3"	 }'
 ```
 - To reference a map variable property, you use the syntax `${lookup(var.MAP_NAME, var.PROPERTY_NAME)}`
 - You can also do static map lookups like `${var.MAP_NAME[var.PROPERTY_NAME]}`
@@ -237,7 +237,15 @@ resource "aws_instance" "my_instace" {
     - state is always available (devs can change the env state but wont be availble to others until they commit and push)
     - sensitive data is no longer locally
 - To configure, add a `backend.tf` configuration file with the correct config - just look this up
-
+```
+terraform {
+  backend "consul" {
+    address = "demo.consul.io"
+    path    = "getting-started-RANDOMSTRING"
+    lock    = false
+  }
+}
+```
 
 #####Datasources
 - A datasource in Terraform is just a place to retrieve data
@@ -283,8 +291,10 @@ resource "aws_instance" "demp_instance" {
 #####Modules
 - Modules are a way to keep your Terraform code organised
 - It also allows you go generify your code so that you can reuse them
+- Modules can depend on modules that depend on mondules
 - There are third party modules that you can also use.
 - To use a module, simple define a module resource with a source atrribute, followed by any arguments that the module needs
+- You will also need to re-run `terraform init` in order for terraform to check and download any additional dependencies
 ```
 module "a_module_from_github" {
   source = "github.com/blah/terraform-module"
