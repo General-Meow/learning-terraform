@@ -5,6 +5,19 @@
 - `terraform plan` - generates a (execution) plan on what will `terraform apply` will do
 - `terraform apply` - generates a plan on what changes will be made and will ask if you wish to run it
 - `terraform destroy` - destroys resources defined in the terraform file
+- `terraform get` - if the working directory uses external modules then, this will download and install them
+- `terraform fmt` - format your defined terraform configuration files
+- `terraform graph` - create a visual representation of the configuration files
+- `terraform import <OPTIONS> <ADDRESS> <ID>` - backwards engineer the current state of the provider and writes the terraform configuration for you
+- `terraform push` - when using terraform enterprise (Atlas), it will run the apply from a centralized remote server
+- `terraform refresh` - refresh remote state to find differences between the state file and the remote state
+- `terraform show` - display a human readable plan
+- `terraform remote` - configure remote storage state
+- `terraform state <COMMAND> <OPTIONS> <ARG>` - change the terraform state, allows for mv, rm, list, pull, push etc
+- `terraform taint` - taint a resource to be destroyed and recreated in the next apply
+- `terraform untaint`
+- `terraform validate` - validates your terraform config syntax
+
 
 
 #####Intro
@@ -38,14 +51,32 @@
 #####Variables
 - The values in key value pairs don't need to be hardcoded, they can be defined to look up variables
   - The syntax for a basic variable is ${var.VARIABLE_NAME} eg. `${var.my_token}`
-- Variables can be basic variables or maps
 - basic 
 ```
 variable "this_is_my_variable" {
   default = "a default value goes here"
 }
 ```
+- List
+  - there are 2 formats to defining lists. Explicit or implicit
+  - implicit
+  ```
+  variable my_list {
+    default = []
+  }
+  ```
+  - explicit
+  ```
+  variable my_list {
+    type = "list"
+  }
+  ```
+  - to set a list variable value in terraform.tfvars
+  ```
+  my_list = ["a", "b", "c"]
+  ```
 - Map
+variables.tf
 ```
 variable "this_is_my_map_variable" {
   type = "map"
@@ -56,8 +87,48 @@ variable "this_is_my_map_variable" {
   }
 }
 ```
+terraform.tfvars
+```
+this_is_my_map_variable = {
+  key_1 = "value 1"
+  key_2 = "value 2"
+  key_3 = "value 3"
+}
+```
+command line var
+```
+terraform apply -var 'this_is_my_map_variable={ key_1 = "value 1", key_2 = "value 2", key_3 = "value 3" }'
+```
 - To reference a map variable property, you use the syntax `${lookup(var.MAP_NAME, var.PROPERTY_NAME)}`
-
+- You can also do static map lookups like `${var.MAP_NAME[var.PROPERTY_NAME]}`
+- Variables are usually defined in the variables.tf file
+- Variables can have defaults
+  - If a variable has been defined but doesn't have a default, then its a required variable, which means that when you run `apply` it will fail if you dont supply the values 
+- Variables can be basic variables or maps
+- To access values of variables defined in the variables.tf file
+variables.tf
+```
+variable example_var_1 {} //required
+variable example_var_2 {
+  default = "some value"
+}
+```
+output.tf
+```
+output "example_output" {
+  value = "${var.example_var_1}, ${var.example_var_2}"
+}
+```
+- Variables can be assigned values in a number of different ways (in order of precedence), command line flags, files, environmental variables, ui input, defaults
+- Command line variables are providered as so: `terraform apply -var 'example_var_1=blah' -var 'example_var_2=xxx'`
+- From a file, if done via the `terraform.tfvars`
+terraform.tfvars
+```
+example_var_1 = "blah"
+example_var_2 = "xxx"
+```
+- If you have a file that isn't named terraform.tfvars but something else, use the -var-file command line argument to load it
+- Environment variables take the form of `TF_VAR_xxx` so the above examples would look like `TF_VAR_example_var_1`
 
 #####Post
 - Installing software after the provisioning can be done in a number of ways
@@ -66,6 +137,11 @@ variable "this_is_my_map_variable" {
   - configuration management tools
 - Chef has some integration to install software on the provitioned resources
 - Ansible integration is not as good
+- To upload and execute scriptes on the new instances, you would use a provisioner
+- Provisioners are blocks within the resource that define what to run
+- These are only executed when the resource is created and not when its being updated, you can also have ones that run during destroy
+- Multiple provisioner blocks can be defined and they will run one at a time
+- If the resource has been successfully created but fails the provisioner part, the resource gets marked as `tainted` and will be removed and possibly recreated after the next `apply`
 - file upload example
 ```
 resource xxx xxx {
@@ -202,3 +278,69 @@ resource "aws_instance" "demp_instance" {
   user-data = ${template_file.mu_script.rendered}
 }
 ```
+
+
+#####Modules
+- Modules are a way to keep your Terraform code organised
+- It also allows you go generify your code so that you can reuse them
+- There are third party modules that you can also use.
+- To use a module, simple define a module resource with a source atrribute, followed by any arguments that the module needs
+```
+module "a_module_from_github" {
+  source = "github.com/blah/terraform-module"
+  //or use a local folder
+  source = "./terraform-module"
+  
+  //arguments
+  an_arg = "random text"
+  another_arg = "some other text"
+}
+```
+- The arguments defined with the module resource actually override the variables defined in the variables.tf
+- Resources defined in the module package will be available for access under your defined module resource eg
+```
+//code in a terraform-module
+output "summary" {
+  value = "${aws_instance.instance_1.public_ip}, ${aws_instance.instance_2.public_ip}"
+}
+
+//code in another module using the terraform-module
+module "blah" {
+  //or use a local folder
+    source = "./terraform-module"
+    
+    //arguments
+    an_arg = "random text"
+    another_arg = "some other text"
+}
+
+output "module-test" {
+  value = "${module.blah.summary}"
+}
+```
+
+
+#####Dependencies
+- Resources can depend on each other, Terraform must work out these dependecies to create resources in the right order
+- There is both implicit and explicit dependencies
+- Implicit is where you use interpolation to define when a resource requires another and terraform inspect these to work it out
+  - eg key = "aws_instance.my_instance.ip"
+- Explicit is used when Terraform cannot work out the dependencies between resources and you give it a hand
+```
+resource "blah" "a" {
+...
+}
+
+resource "another_blah" "b" {
+  depends = ["blah.a"]
+}
+```
+
+####AWS
+#####VPC
+```
+resource "aws_vpc" "my_vpc" {
+
+}
+```
+
