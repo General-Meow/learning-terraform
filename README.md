@@ -28,6 +28,12 @@
 - Its plugin based architechure allows you to support various providers
 - Running `terraform init` will download and init the binaries required to work with these providers, these are stored in a subdirectory of the working dir
 - When running terraform, if there are no provider credentials (aws/azure/gcp) then it'll look in the `~/.aws/credentials` file for it (or terraform.tfvars in the working dir) - this should be done as you dont want to commit credentials in the repo
+- example of a credentials file for aws
+```
+[default]
+aws_access_key_id = "xxx"
+aws_secret_access_key = "yyy"
+```
 - The provider is the system responsible for creating / managing resources aws/azure etc
 
 #####Basics
@@ -135,6 +141,8 @@ example_var_2 = "xxx"
   - file uploads
   - remote exec
   - configuration management tools
+- In order for you to do run provisionors you need access so using key pair or a connection will work
+  - to create a key pair its as simple as `ssh-keygen -f terraform_key`
 - Chef has some integration to install software on the provitioned resources
 - Ansible integration is not as good
 - To upload and execute scriptes on the new instances, you would use a provisioner

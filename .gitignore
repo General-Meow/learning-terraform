@@ -1,2 +1,5 @@
-*/terraform.tfvars
-**/.idea
+terraform_key
+terraform_key.pub
+.terraform
+.idea
+
