@@ -86,7 +86,7 @@ resource "aws_key_pair" "terraform_key" {
 
 resource "aws_eip" "instance_public_ip" {
   instance = "${aws_instance.ec2-instance-demo.id}"
-
+  vpc = true
   tags {
     Name = "terraform_eip"
     created_by = "terraform"

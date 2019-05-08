@@ -1,6 +1,6 @@
-###Terraform notes
+#Terraform notes
 
-#####Common Comands
+###Common Comands
 - `terraform init` - initializes the current directory to work with terraform, should be the first command to run, setups up config
 - `terraform plan` - generates a (execution) plan on what will `terraform apply` will do
 - `terraform apply` - generates a plan on what changes will be made and will ask if you wish to run it
@@ -20,7 +20,7 @@
 
 
 
-#####Intro
+###Intro
 - Terraform is an application that allows you to provision resources, be it compute, network, security (users), loadbalancers etc
 - It does this all by allowing you to write infrastructor as code, meaning all the system is described as code
 - Using Terraform allows you to automate the creation of your infrastructure
@@ -36,7 +36,7 @@ aws_secret_access_key = "yyy"
 ```
 - The provider is the system responsible for creating / managing resources aws/azure etc
 
-#####Basics
+###Basics
 - The working directory will contain a number of terraform files, the main one will contain a `resource` which defines the type and name of the resource
 ``` terraform
   resource <type> <name> {
@@ -54,9 +54,15 @@ aws_secret_access_key = "yyy"
   - terraform.tfvars - file containing variables of sensitive data. to which you will refer to in the main.tf. this should be in the .gitignore gile
 
 
-#####Variables
+###Variables
 - The values in key value pairs don't need to be hardcoded, they can be defined to look up variables
   - The syntax for a basic variable is ${var.VARIABLE_NAME} eg. `${var.my_token}`
+  - This syntax is called interpolation, you can do other things with it, such as 
+    - conditionals 
+    - math expressions
+    - variables
+    - resources
+    - data sources with `${data.xxx}`
 - basic 
 ```
 variable "this_is_my_variable" {
@@ -136,7 +142,40 @@ example_var_2 = "xxx"
 - If you have a file that isn't named terraform.tfvars but something else, use the -var-file command line argument to load it
 - Environment variables take the form of `TF_VAR_xxx` so the above examples would look like `TF_VAR_example_var_1`
 
-#####Post
+###Interpolation
+- For conditionals the syntax is like java
+- `${CONDITION ? truth : false}`
+```
+resource "aws_instance" "test" {
+  count = "${var.env == "prod" ? 2 : 1}"
+}
+```
+- You can also use the built in functions, these are wrapped with the `${ }` and are usually func(arg1, arg2, xxx)
+- some functions
+  - `basename("xxx/yyy/yyy.txt")` - returns the last bit og a path, in this case yyy.txt
+  - `coalesce(string1, string2, x)` - returns first non empty val
+  - `coalescelist(list1, list2)` - return non first non empty list
+  - `element(list, index)`
+  - `format(string, args, ...)` - uses regex to string format a string
+  - `index(list, element)` - find the index of an element
+  - `join(delimiter, list)` - join a list of strings sep by the delimeter
+  - `list(x, y, z)` - create a list with items
+  - `lookup(map, key, [optional default val])` - do a lookup on a map with key
+  - `lower(string)`
+  - `map(k1, v1, k2, v2)` - create a new map with values
+  - `merge(map1, map2, ...)- merges maps into one
+  - `replace(string, search, value)` - string replace
+  - `split(delim, string)`
+  - `substr(string, offset, length)`
+  - `timestamp()`
+  - `upper(string)`
+  - `uuid()`
+  - `values(map)` - returns all the values of a map in a list
+
+
+
+
+###Post
 - Installing software after the provisioning can be done in a number of ways
   - file uploads
   - remote exec
@@ -234,7 +273,7 @@ resource "aws_instance" "my_instace" {
 ```
 
 
-#####History
+###History
 - Terraform keeps state of the provisioned resources in a file call `terraform.tfstate` and the previous state in `terraform.tfstate.backup`
   - this file is created after running `terraform apply`
   - this gives a history of what the state was like
@@ -255,7 +294,7 @@ terraform {
 }
 ```
 
-#####Datasources
+###Datasources
 - A datasource in Terraform is just a place to retrieve data
 - Used in some providers like AWS
 - AWS provides loads of data via its API but its easier to get this same data via the datasource
@@ -269,7 +308,7 @@ data "aws_ip_ranges" "my_ips" {
 - You can access this data with `${data.aws_ip_ranges.my_ips.create_date}`
 
 
-#####Templating
+###Templating
 - Terraform supports templates
 - Templates are files like scripts or application configuration files that have variables
 - These variables are then replaced with values/variables defined in the Terraform files
@@ -296,7 +335,7 @@ resource "aws_instance" "demp_instance" {
 ```
 
 
-#####Modules
+###Modules
 - Modules are a way to keep your Terraform code organised
 - It also allows you go generify your code so that you can reuse them
 - Modules can depend on modules that depend on mondules
@@ -338,7 +377,7 @@ output "module-test" {
 ```
 
 
-#####Dependencies
+###Dependencies
 - Resources can depend on each other, Terraform must work out these dependecies to create resources in the right order
 - There is both implicit and explicit dependencies
 - Implicit is where you use interpolation to define when a resource requires another and terraform inspect these to work it out
@@ -354,8 +393,8 @@ resource "another_blah" "b" {
 }
 ```
 
-####AWS
-#####VPC
+##AWS
+###VPC
 ```
 resource "aws_vpc" "my_vpc" {
 
